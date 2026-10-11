@@ -406,6 +406,30 @@ $('#finale').addEventListener('click',e=>{if(e.target.id==='finale')closeFinale(
 addEventListener('resize',()=>{clearTimeout(window.__resize);window.__resize=setTimeout(()=>{ambientHearts();if(!letter.classList.contains('open'))render(searchInput.value?girls.filter(x=>x.name.toLocaleLowerCase('vi').includes(searchInput.value.trim().toLocaleLowerCase('vi'))):girls)},180)});
 ambientHearts();render(girls);
 
+
+const modal = document.getElementById('complimentModal');
+const openBtn = document.getElementById('complimentOpen');
+const closeBtn = document.getElementById('complimentClose');
+const spinBtn = document.getElementById('complimentSpin');
+const wheel = document.getElementById('complimentWheel');
+const result = document.getElementById('complimentResult');
+
+openBtn.addEventListener('click', () => {
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+});
+
+function closeComplimentModal() {
+  if (spinning) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+closeBtn.addEventListener('click', closeComplimentModal);
+
+modal.addEventListener('click', (event) => {
+  if (event.target === modal) closeComplimentModal();
+});
 const compliments = [
   'Bạn có một nét đáng yêu rất riêng mà không cần giống bất kỳ ai ♡',
   'Nụ cười của bạn có thể khiến một ngày bình thường vui hơn đó!',
