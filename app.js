@@ -486,10 +486,31 @@ spinBtn.addEventListener('click', () => {
   }, 4300);
 });
 
-/* =========================================
-   10B4 — VÒNG QUAY LỜI KHEN + ÂM THANH
-   Thay toàn bộ phần vòng quay cũ bằng đoạn này
-========================================= */
+if (
+  modal &&
+  openBtn &&
+  closeBtn &&
+  spinBtn &&
+  wheel &&
+  result
+) {
+  const compliments = [
+    'Bạn có một nét đáng yêu rất riêng mà không cần giống bất kỳ ai ♡',
+    'Nụ cười của bạn có thể khiến một ngày bình thường vui hơn đó!',
+    'Bạn xứng đáng được yêu quý chỉ vì bạn là chính mình.',
+    'Sự hiện diện của bạn là một điều dễ thương với mọi người.',
+    'Bạn có quyền tự tin với những điều khiến mình khác biệt.',
+    'Mong bạn luôn gặp được những người trân trọng điều tốt đẹp ở mình.',
+    'Bạn đã cố gắng nhiều hơn những gì đôi khi bạn tự công nhận đấy!',
+    '10B4 xin phép khen bạn một câu: bạn rất đáng yêu theo cách riêng của mìnhh',
+    'Mong bạn luôn tỏa sáng theo cách mà chính bạn yêu thích.',
+    'Nhắc nhẹ nè: bạn cũng xứng đáng được dịu dàng yêu thương ♡'
+  ];
+
+  let spinning = false;
+  let rotation = 0;
+  let lastIndex = -1;
+  let spinTimeout = null;
 
 /* ---------- 1. HIỆU ỨNG ÂM THANH ---------- */
 const wheelSound = (() => {
@@ -638,35 +659,7 @@ const openBtn = document.getElementById('complimentOpen');
 const closeBtn = document.getElementById('complimentClose');
 const spinBtn = document.getElementById('complimentSpin');
 const wheel = document.getElementById('complimentWheel');
-const result = document.getElementById('complimentResult');
-
-if (
-  modal &&
-  openBtn &&
-  closeBtn &&
-  spinBtn &&
-  wheel &&
-  result
-) {
-  const compliments = [
-    'Bạn có một nét đáng yêu rất riêng mà không cần giống bất kỳ ai ♡',
-    'Nụ cười của bạn có thể khiến một ngày bình thường vui hơn đó!',
-    'Bạn xứng đáng được yêu quý chỉ vì bạn là chính mình.',
-    'Sự hiện diện của bạn là một điều dễ thương với mọi người.',
-    'Bạn có quyền tự tin với những điều khiến mình khác biệt.',
-    'Mong bạn luôn gặp được những người trân trọng điều tốt đẹp ở mình.',
-    'Bạn đã cố gắng nhiều hơn những gì đôi khi bạn tự công nhận đấy!',
-    '10B4 xin phép khen bạn một câu: bạn rất đáng yêu theo cách riêng của mìnhh',
-    'Mong bạn luôn tỏa sáng theo cách mà chính bạn yêu thích.',
-    'Nhắc nhẹ nè: bạn cũng xứng đáng được dịu dàng yêu thương ♡'
-  ];
-
-  let spinning = false;
-  let rotation = 0;
-  let lastIndex = -1;
-  let spinTimeout = null;
-
-  /* Mở vòng quay */
+const result = document.getElementById('complimentResult');  /* Mở vòng quay */
   openBtn.addEventListener('click', () => {
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
