@@ -434,11 +434,11 @@ const compliments = [
   'Bạn có một nét đáng yêu rất riêng mà không cần giống bất kỳ ai ♡',
   'Nụ cười của bạn có thể khiến một ngày bình thường vui hơn đó!',
   'Bạn xứng đáng được yêu quý chỉ vì bạn là chính mình.',
-  'Sự hiện diện của bạn cũng là một điều dễ thương với mọi người.',
+  'Sự hiện diện của bạn là một điều dễ thương với mọi người.',
   'Bạn có quyền tự tin với những điều khiến mình khác biệt.',
   'Mong bạn luôn gặp được những người trân trọng điều tốt đẹp ở mình.',
   'Bạn đã cố gắng nhiều hơn những gì đôi khi bạn tự công nhận đấy!',
-  '10B4 xin phép khen bạn một câu: đáng yêu theo cách riêng của mìnhh',
+  '10B4 xin phép khen bạn một câu: bạn rất đáng yêu theo cách riêng của mìnhh',
   'Mong bạn luôn tỏa sáng theo cách mà chính bạn yêu thích.',
   'Nhắc nhẹ nè: bạn cũng xứng đáng được dịu dàng yêu thương ♡'
 ];
@@ -485,3 +485,271 @@ spinBtn.addEventListener('click', () => {
     spinning = false;
   }, 4300);
 });
+
+/* =========================================
+   10B4 — VÒNG QUAY LỜI KHEN + ÂM THANH
+   Thay toàn bộ phần vòng quay cũ bằng đoạn này
+========================================= */
+
+/* ---------- 1. HIỆU ỨNG ÂM THANH ---------- */
+const wheelSound = (() => {
+  let audioCtx = null;
+  let tickTimer = null;
+  let soundEnabled = true;
+
+  function getAudio() {
+    try {
+      if (!audioCtx) {
+        const AudioContextClass =
+          window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) return null;
+        audioCtx = new AudioContextClass();
+      }
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      return audioCtx;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function playTone(
+    freq,
+    duration = 0.12,
+    volume = 0.08,
+    type = 'sine',
+    delay = 0
+  ) {
+    if (!soundEnabled) return;
+
+    const ctx = getAudio();
+    if (!ctx) return;
+
+    const now = ctx.currentTime + delay;
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(freq, now);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(
+      Math.min(volume, 0.22),
+      now + 0.015
+    );
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      now + duration
+    );
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + duration + 0.04);
+  }
+
+  function stop() {
+    if (tickTimer !== null) {
+      clearTimeout(tickTimer);
+      tickTimer = null;
+    }
+  }
+
+  function start() {
+    stop();
+
+    if (!soundEnabled || !getAudio()) return;
+
+    // Âm thanh khởi động
+    playTone(500, 0.18, 0.10, 'triangle');
+    playTone(670, 0.20, 0.12, 'triangle', 0.12);
+
+    let interval = 95;
+
+    function tick() {
+      if (tickTimer === null || !soundEnabled) return;
+
+      // Tiếng tích tắc khi vòng quay chạy
+      playTone(1050, 0.045, 0.055, 'square');
+
+      // Tích tắc chậm dần để tạo cảm giác hồi hộp
+      interval = Math.min(260, interval + 3.5);
+      tickTimer = setTimeout(tick, interval);
+    }
+
+    tickTimer = setTimeout(tick, 180);
+  }
+
+  function win() {
+    stop();
+
+    if (!soundEnabled) return;
+
+    // Nhạc hiệu chiến thắng kiểu gameshow
+    const notes = [
+      [523.25, 0],
+      [659.25, 0.13],
+      [783.99, 0.26],
+      [1046.50, 0.42],
+      [783.99, 0.62],
+      [1046.50, 0.82],
+      [1318.50, 1.02],
+      [1568.00, 1.25],
+      [2093.00, 1.48]
+    ];
+
+    notes.forEach(([freq, delay], index) => {
+      playTone(
+        freq,
+        index >= 6 ? 0.42 : 0.25,
+        index >= 6 ? 0.17 : 0.13,
+        'triangle',
+        delay
+      );
+    });
+
+    // Tiếng chuông lấp lánh kết thúc
+    playTone(1760, 0.55, 0.09, 'sine', 1.65);
+    playTone(2093, 0.65, 0.07, 'sine', 1.80);
+  }
+
+  return {
+    start,
+    stop,
+    win,
+    mute() {
+      soundEnabled = false;
+      stop();
+    },
+    unmute() {
+      soundEnabled = true;
+    }
+  };
+})();
+
+/* ---------- 2. KẾT NỐI GIAO DIỆN ---------- */
+const modal = document.getElementById('complimentModal');
+const openBtn = document.getElementById('complimentOpen');
+const closeBtn = document.getElementById('complimentClose');
+const spinBtn = document.getElementById('complimentSpin');
+const wheel = document.getElementById('complimentWheel');
+const result = document.getElementById('complimentResult');
+
+if (
+  modal &&
+  openBtn &&
+  closeBtn &&
+  spinBtn &&
+  wheel &&
+  result
+) {
+  const compliments = [
+    'Bạn có một nét đáng yêu rất riêng mà không cần giống bất kỳ ai ♡',
+    'Nụ cười của bạn có thể khiến một ngày bình thường vui hơn đó!',
+    'Bạn xứng đáng được yêu quý chỉ vì bạn là chính mình.',
+    'Sự hiện diện của bạn là một điều dễ thương với mọi người.',
+    'Bạn có quyền tự tin với những điều khiến mình khác biệt.',
+    'Mong bạn luôn gặp được những người trân trọng điều tốt đẹp ở mình.',
+    'Bạn đã cố gắng nhiều hơn những gì đôi khi bạn tự công nhận đấy!',
+    '10B4 xin phép khen bạn một câu: bạn rất đáng yêu theo cách riêng của mìnhh',
+    'Mong bạn luôn tỏa sáng theo cách mà chính bạn yêu thích.',
+    'Nhắc nhẹ nè: bạn cũng xứng đáng được dịu dàng yêu thương ♡'
+  ];
+
+  let spinning = false;
+  let rotation = 0;
+  let lastIndex = -1;
+  let spinTimeout = null;
+
+  /* Mở vòng quay */
+  openBtn.addEventListener('click', () => {
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+  });
+
+  /* Đóng vòng quay */
+  function closeComplimentModal() {
+    if (spinning) return;
+
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    wheelSound.stop();
+  }
+
+  closeBtn.addEventListener('click', closeComplimentModal);
+
+  modal.addEventListener('click', event => {
+    if (event.target === modal) {
+      closeComplimentModal();
+    }
+  });
+
+  /* Quay vòng quay */
+  spinBtn.addEventListener('click', () => {
+    if (spinning) return;
+
+    spinning = true;
+    spinBtn.disabled = true;
+
+    // Phát âm thanh ngay khi người dùng bấm quay
+    wheelSound.start();
+
+    spinBtn.innerHTML =
+      '<span>Đang quay nèeee...</span><span>♡</span>';
+
+    result.innerHTML =
+      '<span class="result-mini-heart">♡</span>' +
+      '<span>Hồi hộp chưa nè...</span>';
+
+    // Chọn ngẫu nhiên một lời khen
+    let index = Math.floor(
+      Math.random() * compliments.length
+    );
+
+    // Tránh nhận cùng lời khen hai lần liên tiếp
+    if (index === lastIndex) {
+      index = (index + 1) % compliments.length;
+    }
+
+    lastIndex = index;
+
+    // Tính góc dừng theo 8 múi của bánh xe
+    const segmentAngle = 360 / 8;
+    const wheelIndex = index % 8;
+    const targetAngle =
+      360 - (wheelIndex + 0.5) * segmentAngle;
+
+    const currentAngle =
+      ((rotation % 360) + 360) % 360;
+
+    const extraAngle =
+      (targetAngle - currentAngle + 360) % 360;
+
+    // Quay thêm 5 vòng rồi dừng ở kết quả
+    rotation += 360 * 5 + extraAngle;
+    wheel.style.transform = `rotate(${rotation}deg)`;
+
+    // Chờ hiệu ứng quay hoàn tất
+    spinTimeout = window.setTimeout(() => {
+      // Dừng tiếng tích tắc và phát nhạc chiến thắng
+      wheelSound.win();
+
+      result.innerHTML =
+        '<span class="result-mini-heart">♡</span>' +
+        `<span>${compliments[index]}</span>`;
+
+      spinBtn.disabled = false;
+      spinBtn.innerHTML =
+        '<span>Quay lại lần nữa!</span><span>♡</span>';
+
+      spinning = false;
+      spinTimeout = null;
+    }, 4300);
+  });
+}
+
