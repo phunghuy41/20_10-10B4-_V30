@@ -653,25 +653,184 @@ const wheelSound = (() => {
   };
 })();
 
-/* ---------- 2. KẾT NỐI GIAO DIỆN ---------- */
-const modal = document.getElementById('complimentModal');
-const openBtn = document.getElementById('complimentOpen');
-const closeBtn = document.getElementById('complimentClose');
-const spinBtn = document.getElementById('complimentSpin');
-const wheel = document.getElementById('complimentWheel');
-const result = document.getElementById('complimentResult');  /* Mở vòng quay */
+
+/* =========================================
+   VÒNG QUAY LỜI KHEN 10B4 + ÂM THANH
+   Thay thế toàn bộ code vòng quay cũ bằng đoạn này
+========================================= */
+
+(() => {
+  const modal = document.getElementById('complimentModal');
+  const openBtn = document.getElementById('complimentOpen');
+  const closeBtn = document.getElementById('complimentClose');
+  const spinBtn = document.getElementById('complimentSpin');
+  const wheel = document.getElementById('complimentWheel');
+  const result = document.getElementById('complimentResult');
+
+  // Không làm hỏng các chức năng khác nếu HTML thiếu phần tử.
+  if (!modal || !openBtn || !closeBtn || !spinBtn || !wheel || !result) {
+    console.warn('Vòng quay: chưa tìm thấy đủ phần tử HTML.');
+    return;
+  }
+
+  const compliments = [
+    'Bạn có một nét đáng yêu rất riêng mà không cần giống bất kỳ ai ♡',
+    'Nụ cười của bạn có thể khiến một ngày bình thường vui hơn đó!',
+    'Bạn xứng đáng được yêu quý chỉ vì bạn là chính mình.',
+    'Sự hiện diện của bạn là một điều dễ thương với mọi người.',
+    'Bạn có quyền tự tin với những điều khiến mình khác biệt.',
+    'Mong bạn luôn gặp được những người trân trọng điều tốt đẹp ở mình.',
+    'Bạn đã cố gắng nhiều hơn những gì đôi khi bạn tự công nhận đấy!',
+    '10B4 xin phép khen bạn một câu: bạn rất đáng yêu theo cách riêng của mìnhh.',
+    'Mong bạn luôn tỏa sáng theo cách mà chính bạn yêu thích.',
+    'Nhắc nhẹ nè: bạn cũng xứng đáng được dịu dàng yêu thương ♡'
+  ];
+
+  let spinning = false;
+  let rotation = 0;
+  let lastIndex = -1;
+  let spinTimeout = null;
+
+  /* ---------- ÂM THANH ---------- */
+
+  let wheelAudio = null;
+  let tickTimer = null;
+  let soundEnabled = true;
+
+  function getAudio() {
+    try {
+      if (!wheelAudio) {
+        const AudioClass =
+          window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioClass) return null;
+        wheelAudio = new AudioClass();
+      }
+
+      if (wheelAudio.state === 'suspended') {
+        wheelAudio.resume();
+      }
+
+      return wheelAudio;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function playTone(
+    frequency,
+    duration = 0.12,
+    volume = 0.08,
+    type = 'sine',
+    delay = 0
+  ) {
+    if (!soundEnabled) return;
+
+    const audio = getAudio();
+    if (!audio) return;
+
+    try {
+      const now = audio.currentTime + delay;
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, now);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(
+        Math.min(volume, 0.18),
+        now + 0.015
+      );
+      gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        now + duration
+      );
+
+      oscillator.connect(gain);
+      gain.connect(audio.destination);
+
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.04);
+    } catch (error) {
+      // Lỗi âm thanh không được làm dừng vòng quay.
+    }
+  }
+
+  function stopSound() {
+    if (tickTimer !== null) {
+      clearTimeout(tickTimer);
+      tickTimer = null;
+    }
+  }
+
+  function startSound() {
+    stopSound();
+
+    if (!soundEnabled || !getAudio()) return;
+
+    playTone(500, 0.18, 0.10, 'triangle');
+    playTone(670, 0.20, 0.12, 'triangle', 0.12);
+
+    let interval = 90;
+
+    function tick() {
+      if (tickTimer === null || !soundEnabled) return;
+
+      playTone(1050, 0.045, 0.055, 'square');
+
+      interval = Math.min(240, interval + 3);
+      tickTimer = setTimeout(tick, interval);
+    }
+
+    tickTimer = setTimeout(tick, 180);
+  }
+
+  function winSound() {
+    stopSound();
+
+    if (!soundEnabled) return;
+
+    const notes = [
+      [523.25, 0],
+      [659.25, 0.13],
+      [783.99, 0.26],
+      [1046.50, 0.42],
+      [783.99, 0.62],
+      [1046.50, 0.82],
+      [1318.50, 1.02],
+      [1568.00, 1.25],
+      [2093.00, 1.48]
+    ];
+
+    notes.forEach(([frequency, delay], index) => {
+      playTone(
+        frequency,
+        index >= 6 ? 0.38 : 0.25,
+        index >= 6 ? 0.15 : 0.12,
+        'triangle',
+        delay
+      );
+    });
+
+    playTone(1760, 0.50, 0.08, 'sine', 1.65);
+    playTone(2093, 0.55, 0.06, 'sine', 1.80);
+  }
+
+  /* ---------- MỞ / ĐÓNG VÒNG QUAY ---------- */
+
   openBtn.addEventListener('click', () => {
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
   });
 
-  /* Đóng vòng quay */
   function closeComplimentModal() {
     if (spinning) return;
 
+    stopSound();
+
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
-    wheelSound.stop();
   }
 
   closeBtn.addEventListener('click', closeComplimentModal);
@@ -682,15 +841,15 @@ const result = document.getElementById('complimentResult');  /* Mở vòng quay 
     }
   });
 
-  /* Quay vòng quay */
+  /* ---------- QUAY VÀ CHỌN LỜI KHEN ---------- */
+
   spinBtn.addEventListener('click', () => {
     if (spinning) return;
 
     spinning = true;
     spinBtn.disabled = true;
 
-    // Phát âm thanh ngay khi người dùng bấm quay
-    wheelSound.start();
+    startSound();
 
     spinBtn.innerHTML =
       '<span>Đang quay nèeee...</span><span>♡</span>';
@@ -699,21 +858,18 @@ const result = document.getElementById('complimentResult');  /* Mở vòng quay 
       '<span class="result-mini-heart">♡</span>' +
       '<span>Hồi hộp chưa nè...</span>';
 
-    // Chọn ngẫu nhiên một lời khen
-    let index = Math.floor(
-      Math.random() * compliments.length
-    );
+    let index = Math.floor(Math.random() * compliments.length);
 
-    // Tránh nhận cùng lời khen hai lần liên tiếp
     if (index === lastIndex) {
       index = (index + 1) % compliments.length;
     }
 
     lastIndex = index;
 
-    // Tính góc dừng theo 8 múi của bánh xe
+    // Bánh xe có 8 múi; 10 lời khen được chia sẻ giữa các múi.
     const segmentAngle = 360 / 8;
     const wheelIndex = index % 8;
+
     const targetAngle =
       360 - (wheelIndex + 0.5) * segmentAngle;
 
@@ -723,14 +879,16 @@ const result = document.getElementById('complimentResult');  /* Mở vòng quay 
     const extraAngle =
       (targetAngle - currentAngle + 360) % 360;
 
-    // Quay thêm 5 vòng rồi dừng ở kết quả
     rotation += 360 * 5 + extraAngle;
+
     wheel.style.transform = `rotate(${rotation}deg)`;
 
-    // Chờ hiệu ứng quay hoàn tất
+    if (spinTimeout !== null) {
+      clearTimeout(spinTimeout);
+    }
+
     spinTimeout = window.setTimeout(() => {
-      // Dừng tiếng tích tắc và phát nhạc chiến thắng
-      wheelSound.win();
+      winSound();
 
       result.innerHTML =
         '<span class="result-mini-heart">♡</span>' +
@@ -744,5 +902,7 @@ const result = document.getElementById('complimentResult');  /* Mở vòng quay 
       spinTimeout = null;
     }, 4300);
   });
-}
+
+})();
+
 
